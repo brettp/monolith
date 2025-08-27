@@ -989,6 +989,13 @@ pub fn walk(session: &mut Session, document_url: &Url, node: &Handle) {
                         if let Some(use_attr_href_value) = get_node_attr(node, attr_name) {
                             if session.options.no_images {
                                 set_node_attr(node, attr_name, None);
+                            } else if use_attr_href_value.clone().starts_with('#') {
+                                // Relative symbol that resolves to its own URL; keep as-is.
+                                set_node_attr(
+                                    node,
+                                    attr_name,
+                                    Some(use_attr_href_value),
+                                );
                             } else {
                                 let image_asset_url: Url =
                                     resolve_url(document_url, &use_attr_href_value);

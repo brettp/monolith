@@ -261,6 +261,54 @@ document.body.style.color = "red";
     }
 
     #[test]
+    fn embed_svg_symbol_asset_via_use() {
+        let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        let path_html: &Path = Path::new("tests/_data_/svg/svg_inline_symbol_use.html");
+
+        let out = cmd.arg("-M").arg(path_html.as_os_str()).output().unwrap();
+
+        // STDERR should list files that got retrieved (only 1; no self-embedding for the relative xlink)
+        assert_eq!(
+            String::from_utf8_lossy(&out.stderr),
+            format!(
+                r#"{file_url_html}
+"#,
+                file_url_html = Url::from_file_path(fs::canonicalize(path_html).unwrap()).unwrap(),
+            )
+        );
+
+        // STDOUT should contain HTML with the use id kept the same because it
+        // references an inlined SVG symbol in the same document
+        assert_eq!(
+            String::from_utf8_lossy(&out.stdout),
+            r##"<html><head><meta name="robots" content="none"></meta></head><body>
+  <svg xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol id="icon-1" viewBox="0 0 24 24">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M10 20h4V10h3l-5-6.5L7 10h3v10Z"></path>
+      </symbol>
+      <symbol id="icon-2" viewBox="0 0 24 24">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M10 20h4V10h3l-5-6.5L7 10h3v10Z"></path>
+      </symbol>
+    </defs>
+  </svg>
+
+  <button class="tm-votes-lever__button" data-test-id="votes-lever-upvote-button" title="Like" type="button">
+    <svg class="icon">
+      <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-1" href="#icon-1">
+      </use>
+    </svg>
+  </button>
+
+</body></html>
+"##
+        );
+
+        // Exit code should be 0
+        out.assert().code(0);
+    }
+
+    #[test]
     fn embed_svg_local_asset_via_image() {
         let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         let path_html: &Path = Path::new("tests/_data_/svg/image.html");
